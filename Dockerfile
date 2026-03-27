@@ -1,5 +1,5 @@
-# Use CUDA 12.1 which has broadest GPU compatibility
-FROM nvidia/cuda:12.1.1-cudnn8-runtime-ubuntu22.04
+# Use CUDA 12.6 for Blackwell (sm_120) + all older GPU support
+FROM nvidia/cuda:12.6.3-cudnn-runtime-ubuntu22.04
 
 # Remove any third-party apt sources to avoid issues with expiring keys.
 RUN rm -f /etc/apt/sources.list.d/*.list
@@ -20,8 +20,8 @@ RUN apt-get update -y && \
     apt-get clean -y && \
     rm -rf /var/lib/apt/lists/*
 
-# Install PyTorch with CUDA 12.1 support (broadest GPU architecture compatibility)
-RUN pip install torch==2.4.1+cu121 torchaudio==2.4.1+cu121 --index-url https://download.pytorch.org/whl/cu121
+# Install PyTorch 2.6 with CUDA 12.6 support (includes Blackwell sm_120 + all older architectures)
+RUN pip install torch==2.6.0+cu126 torchaudio==2.6.0+cu126 --index-url https://download.pytorch.org/whl/cu126
 
 # Install remaining Python dependencies
 COPY builder/requirements.txt /requirements.txt
