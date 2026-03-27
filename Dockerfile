@@ -1,6 +1,5 @@
-# faster-whisper turbo needs cudnnn >= 9
-# see https://github.com/runpod-workers/worker-faster_whisper/pull/44
-FROM nvidia/cuda:12.4.1-cudnn-runtime-ubuntu22.04
+# Use CUDA 12.1 which has broadest GPU compatibility
+FROM nvidia/cuda:12.1.1-cudnn8-runtime-ubuntu22.04
 
 # Remove any third-party apt sources to avoid issues with expiring keys.
 RUN rm -f /etc/apt/sources.list.d/*.list
@@ -21,7 +20,10 @@ RUN apt-get update -y && \
     apt-get clean -y && \
     rm -rf /var/lib/apt/lists/*
 
-# Install Python dependencies
+# Install PyTorch with CUDA 12.1 support (broadest GPU architecture compatibility)
+RUN pip install torch==2.4.1+cu121 torchaudio==2.4.1+cu121 --index-url https://download.pytorch.org/whl/cu121
+
+# Install remaining Python dependencies
 COPY builder/requirements.txt /requirements.txt
 RUN pip install huggingface_hub[hf_xet] && \
     pip install -r /requirements.txt --no-cache-dir
@@ -40,4 +42,3 @@ COPY test_input.json .
 
 # Set default command
 CMD python3 -u /rp_handler.py
-
