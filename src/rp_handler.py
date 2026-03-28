@@ -17,6 +17,7 @@ from runpod.serverless.utils.rp_validator import validate
 import runpod
 import predict
 import torch
+import math
 import numpy as np
 
 
@@ -24,6 +25,28 @@ np.NAN = np.nan
 
 MODEL = predict.Predictor()
 MODEL.setup()
+
+
+def sanitize_floats(obj):
+    """Recursively replace NaN/Infinity with None so JSON serialization succeeds."""
+    if isinstance(obj, float):
+        if math.isnan(obj) or math.isinf(obj):
+            return None
+        return obj
+    if isinstance(obj, dict):
+        return {k: sanitize_floats(v) for k, v in obj.items()}
+    if isinstance(obj, (list, tuple)):
+        return [sanitize_floats(v) for v in obj]
+    if isinstance(obj, np.floating):
+        val = float(obj)
+        if math.isnan(val) or math.isinf(val):
+            return None
+        return val
+    if isinstance(obj, np.integer):
+        return int(obj)
+    if isinstance(obj, np.ndarray):
+        return sanitize_floats(obj.tolist())
+    return obj
 
 
 def base64_to_tempfile(base64_file: str) -> str:
@@ -152,7 +175,7 @@ def run_whisper_job(job):
     with rp_debugger.LineTimer('cleanup_step'):
         rp_cleanup.clean(['input_objects'])
 
-    return resp
+    return sanitize_floats(resp)
 
 
 runpod.serverless.start({"handler": run_whisper_job})
