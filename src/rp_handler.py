@@ -62,7 +62,17 @@ def diarize(fpath):
         fpath = _to_wav(fpath)
 
     resp = {'segments': []}
-    pipeline = Pipeline.from_pretrained('config.yaml')
+    # PyTorch 2.6 changed weights_only default to True, which breaks pyannote
+    # Patch torch.load to use weights_only=False for trusted local model files
+    _original_torch_load = torch.load
+    def _patched_torch_load(*args, **kwargs):
+        kwargs.setdefault('weights_only', False)
+        return _original_torch_load(*args, **kwargs)
+    torch.load = _patched_torch_load
+    try:
+        pipeline = Pipeline.from_pretrained('config.yaml')
+    finally:
+        torch.load = _original_torch_load
     pipeline.to(torch.device('cuda'))
     dia = pipeline(fpath)
 
