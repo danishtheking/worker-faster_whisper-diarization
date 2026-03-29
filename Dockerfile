@@ -20,8 +20,8 @@ RUN apt-get update -y && \
     apt-get clean -y && \
     rm -rf /var/lib/apt/lists/*
 
-# Install PyTorch 2.6 with CUDA 12.1 support
-RUN pip install torch==2.6.0+cu121 torchaudio==2.6.0+cu121 --index-url https://download.pytorch.org/whl/cu121
+# Install PyTorch 2.5.1 with CUDA 12.1 support (2.6.0 has no cu121 wheels)
+RUN pip install torch==2.5.1+cu121 torchaudio==2.5.1+cu121 --index-url https://download.pytorch.org/whl/cu121
 
 # Install remaining Python dependencies
 COPY builder/requirements.txt /requirements.txt
