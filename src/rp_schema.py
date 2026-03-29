@@ -119,4 +119,24 @@ INPUT_VALIDATIONS = {
         'required': False,
         'default': True
     },
+    'min_speakers': {
+        'type': int,
+        'required': False,
+        'default': None
+    },
+    'max_speakers': {
+        'type': int,
+        'required': False,
+        'default': None
+    },
+    'num_speakers': {
+        'type': int,
+        'required': False,
+        'default': None
+    },
+    'hallucination_silence_threshold': {
+        'type': float,
+        'required': False,
+        'default': None
+    },
 }

@@ -80,7 +80,7 @@ def _to_wav(fpath):
     return new_path
 
 
-def diarize(fpath):
+def diarize(fpath, min_speakers=None, max_speakers=None, num_speakers=None):
     if not str(fpath).lower().endswith('.wav'):
         fpath = _to_wav(fpath)
 
@@ -97,7 +97,18 @@ def diarize(fpath):
     finally:
         torch.load = _original_torch_load
     pipeline.to(torch.device('cuda'))
-    dia = pipeline(fpath)
+
+    # Build diarization kwargs for speaker count constraints
+    dia_kwargs = {}
+    if num_speakers is not None:
+        dia_kwargs['num_speakers'] = num_speakers
+    else:
+        if min_speakers is not None:
+            dia_kwargs['min_speakers'] = min_speakers
+        if max_speakers is not None:
+            dia_kwargs['max_speakers'] = max_speakers
+
+    dia = pipeline(fpath, **dia_kwargs)
 
     speakers = {}
     for turn, _, speaker in dia.itertracks(yield_label=True):
@@ -167,10 +178,16 @@ def run_whisper_job(job):
             word_timestamps=job_input["word_timestamps"],
             repetition_penalty=job_input["repetition_penalty"],
             no_repeat_ngram_size=job_input["no_repeat_ngram_size"],
+            hallucination_silence_threshold=job_input.get("hallucination_silence_threshold"),
         )
 
     if job_input['diarize']:
-        resp['diarization'] = diarize(audio_input)
+        resp['diarization'] = diarize(
+            audio_input,
+            min_speakers=job_input.get('min_speakers'),
+            max_speakers=job_input.get('max_speakers'),
+            num_speakers=job_input.get('num_speakers'),
+        )
 
     with rp_debugger.LineTimer('cleanup_step'):
         rp_cleanup.clean(['input_objects'])
