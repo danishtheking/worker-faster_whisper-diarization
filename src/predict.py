@@ -126,32 +126,37 @@ class Predictor:
         # Note: FasterWhisper's transcribe might release the GIL, potentially allowing
         # other threads to acquire the model_lock if transcribe is lengthy.
         # If issues arise, the lock might need to encompass the transcribe call too.
+        # Build transcribe kwargs
+        transcribe_kwargs = dict(
+            language=language,
+            task="transcribe",
+            beam_size=beam_size,
+            best_of=best_of,
+            patience=patience,
+            length_penalty=length_penalty,
+            temperature=temperature,
+            compression_ratio_threshold=compression_ratio_threshold,
+            log_prob_threshold=logprob_threshold,
+            no_speech_threshold=no_speech_threshold,
+            condition_on_previous_text=condition_on_previous_text,
+            initial_prompt=initial_prompt,
+            prefix=None,
+            suppress_blank=True,
+            suppress_tokens=[-1],
+            without_timestamps=False,
+            max_initial_timestamp=1.0,
+            word_timestamps=word_timestamps,
+            vad_filter=enable_vad,
+            repetition_penalty=repetition_penalty,
+            no_repeat_ngram_size=no_repeat_ngram_size,
+        )
+
+        # Only pass hallucination_silence_threshold if explicitly set
+        if hallucination_silence_threshold is not None:
+            transcribe_kwargs['hallucination_silence_threshold'] = hallucination_silence_threshold
+
         segments, info = list(
-            model.transcribe(
-                str(audio),
-                language=language,
-                task="transcribe",
-                beam_size=beam_size,
-                best_of=best_of,
-                patience=patience,
-                length_penalty=length_penalty,
-                temperature=temperature,
-                compression_ratio_threshold=compression_ratio_threshold,
-                log_prob_threshold=logprob_threshold,
-                no_speech_threshold=no_speech_threshold,
-                condition_on_previous_text=condition_on_previous_text,
-                initial_prompt=initial_prompt,
-                prefix=None,
-                suppress_blank=True,
-                suppress_tokens=[-1],  # Might need conversion from string
-                without_timestamps=False,
-                max_initial_timestamp=1.0,
-                word_timestamps=word_timestamps,
-                vad_filter=enable_vad,
-                repetition_penalty=repetition_penalty,
-                no_repeat_ngram_size=no_repeat_ngram_size,
-                hallucination_silence_threshold=hallucination_silence_threshold,
-            )
+            model.transcribe(str(audio), **transcribe_kwargs)
         )
 
         segments = list(segments)
