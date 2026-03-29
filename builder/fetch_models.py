@@ -1,8 +1,6 @@
 from faster_whisper.utils import download_model
 
 model_names = [
-    "tiny",
-    "large-v2",
     "large-v3",
 ]
 

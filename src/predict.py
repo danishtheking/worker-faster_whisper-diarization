@@ -14,8 +14,6 @@ from faster_whisper.utils import format_timestamp
 
 # Define available models (for validation)
 AVAILABLE_MODELS = {
-    "tiny",
-    "large-v2",
     "large-v3",
 }
 
