@@ -5,23 +5,24 @@ rp_debugger:
 - Utility that provides additional debugging information.
 The handler must be called with --rp_debugger flag to enable it.
 """
+# numpy MUST be imported first — np.NAN was removed in NumPy 2.0
+# but pyannote.audio (and its deps) still reference it during import
+import numpy as np
+np.NAN = np.nan
+
+import math
 import base64
 import subprocess
 import tempfile
 from pathlib import Path
 
+import torch
 from pyannote.audio import Pipeline
 from rp_schema import INPUT_VALIDATIONS
 from runpod.serverless.utils import download_files_from_urls, rp_cleanup, rp_debugger
 from runpod.serverless.utils.rp_validator import validate
 import runpod
 import predict
-import torch
-import math
-import numpy as np
-
-
-np.NAN = np.nan
 
 MODEL = predict.Predictor()
 MODEL.setup()
