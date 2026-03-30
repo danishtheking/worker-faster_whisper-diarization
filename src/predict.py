@@ -4,6 +4,7 @@ Whisper model. It is based on the Predictor class from the original Whisper
 repository, with some modifications to make it work with the RP platform.
 """
 import gc
+import re
 import threading
 import numpy as np
 
@@ -161,6 +162,9 @@ class Predictor:
 
         segments = list(segments)
 
+        # Filter hallucinated segments (e.g. Hindi YouTube training data artifacts)
+        segments = filter_hallucinations(segments, language)
+
         # Format transcription
         transcription_output = format_segments(transcription, segments)
 
@@ -199,6 +203,71 @@ class Predictor:
             results["word_timestamps"] = word_timestamps_list
 
         return results
+
+
+# Known Whisper hallucination phrases by language.
+# These are artifacts from YouTube training data (subscribe, like, share, etc.)
+# Each entry: compiled regex pattern to strip from segment text.
+HALLUCINATION_PATTERNS = {
+    "hi": [
+        # "subscribe" in various Hindi spellings
+        re.compile(r"सब्सक्राइब\s*(करें|कर\s*दो|करो|करना|के\s*लिए|कर)?", re.IGNORECASE),
+        re.compile(r"सबस्क्राइब\s*(करें|कर\s*दो|करो|करना|के\s*लिए|कर)?", re.IGNORECASE),
+        # "like" button references
+        re.compile(r"लाइक\s*(करें|कर\s*दो|करो|करना|बटन)?", re.IGNORECASE),
+        # "share" references
+        re.compile(r"शेयर\s*(करें|कर\s*दो|करो|करना)?", re.IGNORECASE),
+        # "bell icon" / notification references
+        re.compile(r"बेल\s*आइकन\s*(दबा|को\s*दबा|प्रेस)?", re.IGNORECASE),
+        # "channel" references in YouTube context
+        re.compile(r"चैनल\s*को\s*(सब्सक्राइब|सबस्क्राइब)", re.IGNORECASE),
+    ],
+}
+
+# Segments that consist ONLY of hallucination text (after stripping) are removed.
+# Segments with mixed real + hallucination text get the hallucination parts stripped.
+
+
+def filter_hallucinations(segments, language):
+    """
+    Remove known hallucination phrases from transcription segments.
+    Drops segments that become empty after filtering.
+    """
+    patterns = HALLUCINATION_PATTERNS.get(language, [])
+    if not patterns:
+        return segments
+
+    filtered = []
+    for seg in segments:
+        text = seg.text
+        for pattern in patterns:
+            text = pattern.sub("", text)
+        # Clean up extra whitespace left after stripping
+        text = re.sub(r"\s+", " ", text).strip()
+        # Only keep segments that still have meaningful content
+        if text and len(text) > 1:
+            # Create a modified segment-like object with cleaned text
+            filtered.append(_with_text(seg, text))
+        else:
+            print(f"[hallucination-filter] Dropped segment {seg.id}: '{seg.text.strip()}'")
+    return filtered
+
+
+class _SegmentProxy:
+    """Lightweight proxy that overrides .text on an existing segment."""
+    def __init__(self, original, new_text):
+        self._original = original
+        self.text = new_text
+
+    def __getattr__(self, name):
+        return getattr(self._original, name)
+
+
+def _with_text(segment, new_text):
+    """Return a segment copy with modified text, preserving all other fields."""
+    if segment.text.strip() == new_text:
+        return segment
+    return _SegmentProxy(segment, " " + new_text)
 
 
 def serialize_segments(transcript):
