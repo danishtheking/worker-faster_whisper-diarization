@@ -13,7 +13,7 @@ pipeline:
 params:
   clustering:
     method: centroid
-    min_cluster_size: 15
-    threshold: 0.855
+    min_cluster_size: 12
+    threshold: 0.7045
   segmentation:
-    min_duration_off: 0.8
+    min_duration_off: 0.0
